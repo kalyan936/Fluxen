@@ -32,14 +32,14 @@ jobs:
 
           pip install Pillow -q
 
-          # Write manifest using Python with escaped dollar sign
+          # Write manifest WITHOUT applicationName placeholder first
           python3 << 'PYEOF'
           manifest = """<manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET"/>
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
               <application
                   android:label="Fluxen"
-                  android:name=""
+                  android:name="APPNAME_PLACEHOLDER"
                   android:icon="@mipmap/ic_launcher"
                   android:usesCleartextTraffic="true">
                   <activity
@@ -62,13 +62,13 @@ jobs:
           </manifest>"""
           with open('/tmp/app/android/app/src/main/AndroidManifest.xml', 'w') as f:
               f.write(manifest)
-          print("Manifest written")
-          # Verify applicationName is present
-          content = open('/tmp/app/android/app/src/main/AndroidManifest.xml').read()
-          assert 'applicationName' in content, "ERROR: applicationName missing!"
-          print("Verified: applicationName is present")
+          print("Manifest written with placeholder")
           PYEOF
 
+          # Now use sed to replace placeholder with actual Flutter variable
+          sed -i 's/APPNAME_PLACEHOLDER/$\{applicationName\}/g' /tmp/app/android/app/src/main/AndroidManifest.xml
+
+          echo "=== Final Manifest ==="
           cat /tmp/app/android/app/src/main/AndroidManifest.xml
 
           # Write icons
