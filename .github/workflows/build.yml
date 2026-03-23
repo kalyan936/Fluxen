@@ -10,20 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.6'
           channel: 'stable'
+
       - name: Build
         run: |
           flutter create --org com.fluxen --project-name fluxen_currency --platforms android /tmp/app
           rm -rf /tmp/app/lib
-          cp -r flutter/lib /tmp/app/lib
-          cp flutter/pubspec.yaml /tmp/app/pubspec.yaml
+          cp -r fluxen-final/flutter/lib /tmp/app/lib
+          cp fluxen-final/flutter/pubspec.yaml /tmp/app/pubspec.yaml
           python3 -c "
           m = open('/tmp/app/android/app/src/main/AndroidManifest.xml').read()
           new = m.replace('<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">', '<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"><uses-permission android:name=\"android.permission.INTERNET\"/><uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>')
@@ -34,6 +37,7 @@ jobs:
           cd /tmp/app
           flutter pub get
           flutter build apk --release --target-platform android-arm64
+
       - uses: actions/upload-artifact@v4
         with:
           name: Fluxen-APK
@@ -47,8 +51,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: web
+          publish_dir: fluxen-final/web
           publish_branch: gh-pages
