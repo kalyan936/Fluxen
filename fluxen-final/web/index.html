@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Fluxen — Currency Converter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#09090f;--surface:#13131c;--surface2:#1c1c28;
+  --border:rgba(255,255,255,0.08);--accent:#c8f542;
+  --text:#f0f0f8;--muted:#5a5a72;--red:#ff4d6d;--green:#c8f542;
+  --font:'Syne',sans-serif;--mono:'DM Mono',monospace;
+  --r:14px;--tr:0.18s ease;
+}
+[data-theme=light]{
+  --bg:#f4f4f9;--surface:#fff;--surface2:#ebebf5;
+  --border:rgba(0,0,0,0.08);--text:#0a0a18;--muted:#888899;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px}
+
+/* Header */
+header{padding:20px 0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.logo{font-size:20px;font-weight:800;letter-spacing:-0.5px}
+.logo span{color:var(--accent)}
+.theme-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:var(--tr)}
+.theme-btn:hover{border-color:var(--accent)}
+
+/* Hero */
+.hero{padding:40px 0 28px;text-align:center}
+.hero-tag{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:14px}
+.hero h1{font-size:clamp(36px,6vw,64px);font-weight:800;letter-spacing:-2px;line-height:1}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{color:var(--muted);font-family:var(--mono);font-size:13px;margin-top:10px}
+
+/* Rate ticker */
+.ticker{overflow:hidden;padding:10px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:28px}
+.ticker-track{display:flex;gap:32px;animation:tick 25s linear infinite;white-space:nowrap}
+.ticker-item{display:flex;gap:6px;font-family:var(--mono);font-size:12px}
+.tp{color:var(--muted)}.tr2{color:var(--text)}
+.up{color:var(--green)}.dn{color:var(--red)}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* Converter */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;margin-bottom:20px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.grid{display:grid;grid-template-columns:1fr 44px 1fr;gap:12px;align-items:end;margin-bottom:20px}
+@media(max-width:560px){.grid{grid-template-columns:1fr}}
+.fl{display:flex;flex-direction:column;gap:6px}
+.lbl{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.inp-wrap{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:var(--tr)}
+.inp-wrap:focus-within{border-color:var(--accent)}
+input[type=number]{flex:1;background:transparent;border:none;outline:none;font-family:var(--mono);font-size:20px;font-weight:500;color:var(--text);padding:12px 14px;min-width:0}
+select{background:transparent;border:none;border-left:1px solid var(--border);outline:none;font-family:var(--font);font-size:13px;font-weight:700;color:var(--text);padding:0 12px;cursor:pointer;min-width:72px}
+select option{background:#1c1c28}
+.swap{display:flex;align-items:center;justify-content:center;padding-bottom:2px}
+.swap-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:var(--tr)}
+.swap-btn:hover{background:var(--accent);color:#000;border-color:var(--accent);transform:rotate(180deg)}
+.cvt-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:10px;padding:15px;font-family:var(--font);font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:var(--tr)}
+.cvt-btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(200,245,66,0.25)}
+.cvt-btn:disabled{opacity:0.6;pointer-events:none}
+
+/* Result */
+.result{margin-top:20px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:20px;display:none}
+.result.show{display:block;animation:fadeUp 0.25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.res-main{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.res-amount{font-family:var(--mono);font-size:38px;font-weight:500;letter-spacing:-1px;color:var(--accent)}
+.res-cur{font-size:18px;font-weight:700;color:var(--muted)}
+.res-meta{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:16px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+@media(max-width:480px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.stat-lbl{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.stat-val{font-family:var(--mono);font-size:16px;font-weight:500}
+
+/* Chart */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin-bottom:28px}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.chart-title{font-size:14px;font-weight:700}
+.periods{display:flex;gap:4px}
+.period{background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;transition:var(--tr)}
+.period.active,.period:hover{background:var(--accent);color:#000;border-color:var(--accent)}
+.chart-wrap{height:240px;position:relative}
+
+.err{background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.3);color:var(--red);border-radius:8px;padding:10px 14px;font-family:var(--mono);font-size:12px;margin-top:12px;display:none}
+.err.show{display:block}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(0,0,0,0.3);border-top-color:#000;border-radius:50%;animation:spin 0.5s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{text-align:center;padding:28px 0;border-top:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">XEN<span>xen</span></div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="dateLbl"></span>
+      <button class="theme-btn" onclick="toggleTheme()">☀</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-tag">// Real-time exchange rates</div>
+    <h1>Currency<br/><em>Intelligence</em></h1>
+    <p>Live rates · Zero fees · Open API</p>
+  </section>
+
+  <div class="ticker"><div class="ticker-track" id="ticker">Loading rates...</div></div>
+
+  <div class="card">
+    <div class="grid">
+      <div class="fl">
+        <div class="lbl">Amount</div>
+        <div class="inp-wrap">
+          <input type="number" id="amount" value="1" min="0.01" step="any"/>
+          <select id="from"></select>
+        </div>
+      </div>
+      <div class="swap"><button class="swap-btn" onclick="swap()">⇄</button></div>
+      <div class="fl">
+        <div class="lbl">Convert to</div>
+        <div class="inp-wrap">
+          <input type="number" id="resultInp" placeholder="—" readonly style="cursor:default"/>
+          <select id="to"></select>
+        </div>
+      </div>
+    </div>
+    <button class="cvt-btn" id="cvtBtn" onclick="convert()">Convert</button>
+    <div class="err" id="err"></div>
+    <div class="result" id="result">
+      <div class="res-main">
+        <div class="res-amount" id="resAmount"></div>
+        <div class="res-cur" id="resCur"></div>
+      </div>
+      <div class="res-meta">
+        <span>Rate: <b id="resRate"></b></span>
+        <span>Inverse: <b id="resInv"></b></span>
+        <span>Updated: <b id="resDate"></b></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="statsWrap" style="display:none">
+    <div class="stats">
+      <div class="stat"><div class="stat-lbl">30d Low</div><div class="stat-val" id="sMin">—</div></div>
+      <div class="stat"><div class="stat-lbl">30d High</div><div class="stat-val" id="sMax">—</div></div>
+      <div class="stat"><div class="stat-lbl">30d Avg</div><div class="stat-val" id="sAvg">—</div></div>
+      <div class="stat"><div class="stat-lbl">30d Change</div><div class="stat-val" id="sChg">—</div></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title" id="chartLbl">Rate history</div>
+        <div class="periods">
+          <button class="period active" onclick="setPeriod(this,7)">7D</button>
+          <button class="period" onclick="setPeriod(this,30)">1M</button>
+          <button class="period" onclick="setPeriod(this,90)">3M</button>
+          <button class="period" onclick="setPeriod(this,180)">6M</button>
+          <button class="period" onclick="setPeriod(this,365)">1Y</button>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    </div>
+  </div>
+
+  <footer>Fluxen Currency · Open Exchange Rates API · Free forever</footer>
+</div>
+
+<script>
+// ── API: open.er-api.com (free, no key, supports all pairs) ──────────
+const API = 'https://open.er-api.com/v6/latest';
+const FRANK = 'https://api.frankfurter.app';
+
+const CURRENCIES = {
+  USD:'US Dollar',EUR:'Euro',GBP:'British Pound',JPY:'Japanese Yen',
+  INR:'Indian Rupee',AUD:'Australian Dollar',CAD:'Canadian Dollar',
+  CHF:'Swiss Franc',CNY:'Chinese Yuan',SGD:'Singapore Dollar',
+  HKD:'Hong Kong Dollar',KRW:'South Korean Won',MXN:'Mexican Peso',
+  BRL:'Brazilian Real',NOK:'Norwegian Krone',SEK:'Swedish Krona',
+  NZD:'New Zealand Dollar',ZAR:'South African Rand',THB:'Thai Baht',
+  DKK:'Danish Krone',TRY:'Turkish Lira',AED:'UAE Dirham',
+  SAR:'Saudi Riyal',PKR:'Pakistani Rupee',MYR:'Malaysian Ringgit',
+};
+
+let chart = null;
+let period = 7;
+let ratesCache = {};
+
+function init() {
+  document.getElementById('dateLbl').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+
+  const from = document.getElementById('from');
+  const to = document.getElementById('to');
+  Object.entries(CURRENCIES).forEach(([code]) => {
+    from.innerHTML += `<option value="${code}"${code==='USD'?' selected':''}>${code}</option>`;
+    to.innerHTML   += `<option value="${code}"${code==='INR'?' selected':''}>${code}</option>`;
+  });
+
+  from.addEventListener('change', clear);
+  to.addEventListener('change', clear);
+  document.getElementById('amount').addEventListener('input', clear);
+  document.addEventListener('keydown', e => e.key === 'Enter' && convert());
+
+  loadTicker();
+}
+
+function clear() {
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('err').classList.remove('show');
+  document.getElementById('resultInp').value = '';
+}
+
+// ── Main convert using open.er-api.com ───────────────────────────────
+async function convert() {
+  const from = document.getElementById('from').value;
+  const to   = document.getElementById('to').value;
+  const amt  = parseFloat(document.getElementById('amount').value);
+  const btn  = document.getElementById('cvtBtn');
+
+  if (!amt || amt <= 0) { showErr('Enter a valid amount'); return; }
+
+  btn.innerHTML = '<span class="spin"></span>Converting...';
+  btn.disabled = true;
+  hideErr();
+
+  try {
+    // Fetch all rates for the base currency in one call
+    const res = await fetch(`${API}/${from}`);
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+
+    if (data.result !== 'success') throw new Error('API returned error');
+
+    const rate = data.rates[to];
+    if (!rate) throw new Error('Currency not supported');
+
+    const converted = rate * amt;
+    ratesCache[from] = data.rates;
+
+    document.getElementById('resultInp').value = converted.toFixed(4);
+    document.getElementById('resAmount').textContent =
+      converted.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});
+    document.getElementById('resCur').textContent = to;
+    document.getElementById('resRate').textContent = `1 ${from} = ${rate.toFixed(6)} ${to}`;
+    document.getElementById('resInv').textContent = `1 ${to} = ${(1/rate).toFixed(6)} ${from}`;
+    document.getElementById('resDate').textContent = data.time_last_update_utc?.substring(0,16) ?? 'now';
+    document.getElementById('result').classList.add('show');
+
+    loadHistory(from, to, period);
+  } catch(e) {
+    showErr('Conversion failed: ' + e.message);
+  } finally {
+    btn.innerHTML = 'Convert';
+    btn.disabled = false;
+  }
+}
+
+// ── History via Frankfurter (EUR routing) ────────────────────────────
+async function loadHistory(from, to, days) {
+  const end = new Date();
+  const start = new Date(); start.setDate(start.getDate() - days);
+  const fmt = d => d.toISOString().split('T')[0];
+
+  try {
+    let dates, rates;
+
+    if (from === 'EUR' || to === 'EUR') {
+      const base = from === 'EUR' ? to : from;
+      const r = await fetch(`${FRANK}/${fmt(start)}..${fmt(end)}?from=EUR&to=${base}`);
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      dates = Object.keys(d.rates).sort();
+      rates = dates.map(dt => {
+        let v = d.rates[dt][base];
+        return from !== 'EUR' ? 1/v : v;
+      });
+    } else {
+      const [r1, r2] = await Promise.all([
+        fetch(`${FRANK}/${fmt(start)}..${fmt(end)}?from=${from}&to=EUR`),
+        fetch(`${FRANK}/${fmt(start)}..${fmt(end)}?from=EUR&to=${to}`),
+      ]);
+      if (!r1.ok || !r2.ok) throw new Error();
+      const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
+      const common = Object.keys(d1.rates).filter(dt => d2.rates[dt]).sort();
+      dates = common;
+      rates = common.map(dt => (1 / d1.rates[dt]['EUR']) * d2.rates[dt][to]);
+    }
+
+    if (!rates.length) throw new Error();
+
+    const mn = Math.min(...rates), mx = Math.max(...rates);
+    const avg = rates.reduce((a,b)=>a+b,0)/rates.length;
+    const chg = ((rates[rates.length-1]-rates[0])/rates[0])*100;
+
+    document.getElementById('sMin').textContent = mn.toFixed(6);
+    document.getElementById('sMax').textContent = mx.toFixed(6);
+    document.getElementById('sAvg').textContent = avg.toFixed(6);
+    const chgEl = document.getElementById('sChg');
+    chgEl.textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+    chgEl.style.color = chg>=0?'var(--green)':'var(--red)';
+    document.getElementById('chartLbl').textContent = `${from} / ${to} — ${days}d history`;
+    document.getElementById('statsWrap').style.display = 'block';
+    renderChart(dates, rates, to);
+  } catch { document.getElementById('statsWrap').style.display = 'none'; }
+}
+
+function renderChart(labels, data, to) {
+  const isDark = document.documentElement.dataset.theme !== 'light';
+  const accent = '#c8f542';
+  const grid = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const txt = isDark ? '#5a5a72' : '#888899';
+  if (chart) chart.destroy();
+  const ctx = document.getElementById('chart').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,240);
+  grad.addColorStop(0,'rgba(200,245,66,0.15)');
+  grad.addColorStop(1,'rgba(200,245,66,0)');
+  chart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        data, borderColor:accent, borderWidth:2,
+        backgroundColor:grad, fill:true, tension:0.4,
+        pointRadius:0, pointHoverRadius:4,
+        pointHoverBackgroundColor:accent,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:isDark?'#1c1c28':'#fff',
+          borderColor:accent, borderWidth:1,
+          titleColor:txt, bodyColor:isDark?'#f0f0f8':'#0a0a18',
+          titleFont:{family:"'DM Mono',monospace",size:10},
+          bodyFont:{family:"'DM Mono',monospace",size:12},
+          callbacks:{label:c=>` ${c.parsed.y.toFixed(6)} ${to}`}
+        }
+      },
+      scales:{
+        x:{grid:{color:grid,drawBorder:false},ticks:{color:txt,font:{family:"'DM Mono',monospace",size:10},maxTicksLimit:7},border:{display:false}},
+        y:{grid:{color:grid,drawBorder:false},ticks:{color:txt,font:{family:"'DM Mono',monospace",size:10},maxTicksLimit:5},border:{display:false}}
+      }
+    }
+  });
+}
+
+function setPeriod(el, days) {
+  document.querySelectorAll('.period').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  period = days;
+  const from = document.getElementById('from').value;
+  const to   = document.getElementById('to').value;
+  loadHistory(from, to, days);
+}
+
+// ── Ticker ────────────────────────────────────────────────────────────
+async function loadTicker() {
+  const pairs = [['USD','EUR'],['USD','GBP'],['USD','INR'],['USD','JPY'],
+                 ['EUR','GBP'],['USD','CAD'],['AUD','USD'],['USD','CHF']];
+  try {
+    const res = await fetch(`${API}/USD`);
+    const d = await res.json();
+    const rates = d.rates;
+    const items = pairs.map(([f,t]) => {
+      const rate = f==='USD' ? rates[t] : (1/rates[f])*rates[t];
+      return `<span class="ticker-item"><span class="tp">${f}/${t}</span><span class="tr2">${rate?.toFixed(4)??'—'}</span></span>`;
+    });
+    const html = [...items,...items].join('<span style="color:var(--border);margin:0 8px">·</span>');
+    document.getElementById('ticker').innerHTML = html;
+  } catch {}
+}
+
+function swap() {
+  const f = document.getElementById('from');
+  const t = document.getElementById('to');
+  [f.value, t.value] = [t.value, f.value];
+  clear();
+}
+
+function showErr(m) {
+  const e = document.getElementById('err');
+  e.textContent = m; e.classList.add('show');
+}
+function hideErr() { document.getElementById('err').classList.remove('show'); }
+
+function toggleTheme() {
+  const h = document.documentElement;
+  const dark = h.dataset.theme === 'dark';
+  h.dataset.theme = dark ? 'light' : 'dark';
+  document.querySelector('.theme-btn').textContent = dark ? '☾' : '☀';
+}
+
+init();
+</script>
+</body>
+</html>
